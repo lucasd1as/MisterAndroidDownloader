@@ -1,0 +1,15 @@
+# Rust
+rust/target/
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
+.idea/
+*.iml
+
+# Built packages (CI publishes them)
+*.apk

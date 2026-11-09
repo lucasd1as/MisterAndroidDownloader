@@ -1,0 +1,60 @@
+[package]
+name = "mdm-engine"
+description = "MDM download engine: dynamic segmentation, workers, resume"
+version = "0.5.1"
+edition = "2024"
+license = "GPL-3.0-or-later"
+publish = false
+
+[dependencies]
+bytes = "1.12.1"
+craft-atomic = { git = "https://github.com/storytold/craft-libs", rev = "1a11a4897865f7410c40d25ca6e452ce399a1a2c" }
+serde_json = "1.0.154"
+futures = "0.3.34"
+percent-encoding = "2.3.2"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "stream", "system-proxy", "socks"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-util = "0.7.20"
+url = { version = "2.5.8", features = ["serde"] }
+httpdate = "1.0.3"
+sha2 = "0.11.1"
+md-5 = "0.11.0"
+sha1 = "0.11.0"
+crc32fast = "1.5.3"
+base64 = "0.23.1"
+hex = "0.4.3"
+# Proxy auto-config scripts (src/pac.rs): QuickJS, built from C (no bindgen: its bindings come
+# with it). Only the language: no module loader, no file or OS access.
+rquickjs = { version = "0.14.0", default-features = false, features = ["std"] }
+# ANDROID PATCH: QuickJS ships no pre-generated bindings for Android targets; generate them
+# (needs libclang at build time).
+rquickjs-sys = { version = "0.14", features = ["bindgen"] }
+suppaftp = { version = "12.2.1", default-features = false, features = ["tokio-rustls-aws-lc-rs", "deprecated"] }
+hickory-resolver = { version = "0.26.3", default-features = false, features = ["tokio", "tls-aws-lc-rs", "https-aws-lc-rs", "rustls-platform-verifier"] }
+socket2 = { version = "0.6.5", features = ["all"] }
+network-interface = "2.0.5"
+hyper-util = { version = "0.1.21", default-features = false, features = ["client-proxy-system"] }
+# The client's connector timed, a layer around it (src/server.rs; already in the tree).
+tower-layer = "0.3.3"
+tower-service = "0.3.3"
+# hyper-util's proxy matcher takes an http::Uri (already in the tree through reqwest).
+http = "1.5.0"
+rustls = { version = "0.23.46", default-features = false, features = ["aws-lc-rs", "std", "tls12", "logging"] }
+rustls-platform-verifier = "0.7.1"
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["aws-lc-rs", "tls12", "logging"] }
+
+[target.'cfg(windows)'.dependencies]
+# Sparse part files (src/sparse.rs, D-008 amendment) and the free-space probe (src/disk.rs).
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Graphics_Dwm", "Win32_Media_Audio", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Power", "Win32_System_ProcessStatus", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_UI_Accessibility", "Win32_UI_Controls", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(unix)'.dependencies]
+# The free-space probe (src/disk.rs): statvfs and statfs, safely (already in the tree).
+rustix = { version = "1.1.6", features = ["fs"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+# The free-space probe (src/disk.rs) asks for the space Finder shows, purgeable space included
+# (already in the tree through security-framework).
+core-foundation = "0.10.1"
+core-foundation-sys = "0.8.7"

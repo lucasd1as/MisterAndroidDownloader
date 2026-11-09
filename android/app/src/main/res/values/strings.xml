@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mister Downloader</string>
+
+    <!-- Notifications -->
+    <string name="channel_progress">Download progress</string>
+    <string name="channel_done">Finished and failed downloads</string>
+    <string name="notif_finishing">Finishing up…</string>
+    <plurals name="notif_downloading">
+        <item quantity="one">Downloading %d file</item>
+        <item quantity="other">Downloading %d files</item>
+    </plurals>
+    <string name="notif_complete">Download complete · %1$s</string>
+    <string name="notif_complete_in_app">Download complete · %1$s · kept in the app\'s folder</string>
+    <string name="notif_failed">Failed: %1$s</string>
+    <string name="notif_timeout_title">Downloads paused</string>
+    <string name="notif_timeout_text">Android limits how long downloads may run in one go. Open the app to continue.</string>
+
+    <!-- Actions -->
+    <string name="action_add">Add download</string>
+    <string name="action_download">Download</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_open">Open</string>
+    <string name="action_paste">Paste</string>
+    <string name="action_copy_link">Copy link</string>
+    <string name="action_pause_all">Pause all</string>
+    <string name="action_resume_all">Resume all</string>
+    <string name="action_clear_finished">Clear finished</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_more">More</string>
+    <string name="action_back">Back</string>
+
+    <!-- List -->
+    <string name="filter_all">All</string>
+    <string name="filter_unfinished">Unfinished</string>
+    <string name="filter_finished">Finished</string>
+    <string name="empty_title">No downloads yet</string>
+    <string name="empty_hint">Tap “Add download”, or share a link to this app from your browser.</string>
+    <string name="empty_filtered_title">Nothing here</string>
+    <string name="summary_fmt">%1$s · %2$s</string>
+    <plurals name="active_count">
+        <item quantity="one">%d active</item>
+        <item quantity="other">%d active</item>
+    </plurals>
+    <string name="speed_fmt">%1$s/s</string>
+    <string name="size_of_fmt">%1$s of %2$s</string>
+    <string name="eta_fmt">%1$s left</string>
+    <string name="status_queued">Waiting in the queue</string>
+    <string name="status_paused_fmt">Paused · %1$s</string>
+    <string name="status_failed_fmt">Failed: %1$s</string>
+    <string name="status_complete_fmt">%1$s · %2$s</string>
+    <string name="saved_downloads">In Downloads</string>
+    <string name="saved_app">In the app\'s folder</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_native_title">The download engine could not start</string>
+    <string name="msg_link_copied">Link copied</string>
+    <string name="msg_cannot_open">The file is gone from Downloads, or no app can open it.</string>
+    <string name="msg_in_app_folder">The file could not be copied to Downloads and is kept in the app\'s own folder.</string>
+
+    <!-- Delete -->
+    <string name="delete_title">Delete “%1$s”?</string>
+    <string name="delete_with_file">Also delete the downloaded file</string>
+    <string name="delete_unfinished">The part that is downloaded is deleted too.</string>
+
+    <!-- Add dialog -->
+    <string name="add_title">Add download</string>
+    <string name="add_hint">Link (http, https, ftp)</string>
+    <string name="add_not_a_link">That is not a link this app can download.</string>
+    <string name="add_checking">Checking the link…</string>
+    <plurals name="add_links_found">
+        <item quantity="one">%d link</item>
+        <item quantity="other">%d links, all will be added</item>
+    </plurals>
+
+    <!-- Settings -->
+    <string name="setting_connections">Connections per download</string>
+    <string name="setting_connections_help">A file is split into parts fetched at the same time. More is faster until the server or your network says no; the app learns each server\'s limit.</string>
+    <string name="setting_active">Downloads at once</string>
+    <string name="setting_active_help">The others wait in the queue.</string>
+    <string name="setting_speed">Speed limit</string>
+    <string name="setting_speed_help">For all downloads together.</string>
+    <string name="setting_unlimited">Unlimited</string>
+    <string name="about_title">About</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_text">Android port of Mister Download Manager by Ahmed Nefzaoui. The download engine (segmented, resumable HTTP(S) and FTP(S) downloads) is the original one. Free software, GPL-3.0-or-later.</string>
+    <string name="about_upstream">Original project</string>
+    <string name="about_source">Source code of this app</string>
+</resources>

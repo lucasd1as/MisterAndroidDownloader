@@ -1,0 +1,30 @@
+[package]
+name = "mdm-android"
+description = "Android download manager core: queue, persistence and a JNI bridge over mdm-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "mdm_android"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+mdm-engine = { path = "../mdm-engine" }
+http = "1"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "time", "macros", "sync"] }
+tokio-util = "0.7"
+url = "2"
+jni = "0.22"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.15"
+# Same version as mdm-engine's: they share one global, initialised in `native_init`.
+rustls-platform-verifier = "0.7.1"
+
+[dev-dependencies]
+mdm-labserver = { git = "https://github.com/anefzaoui/misterdownloadmanager", rev = "1e4ae5881bddd1c96e39e14b8f4eb28703fcd732" }
+tempfile = "3"
