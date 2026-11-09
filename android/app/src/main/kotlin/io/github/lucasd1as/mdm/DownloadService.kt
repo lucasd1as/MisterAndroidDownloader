@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
@@ -32,11 +33,13 @@ class DownloadService : Service() {
     private var loop: Job? = null
     private var lastStartId = 0
     private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
 
     // Main thread only.
     private val exporting = mutableSetOf<Long>()
     private val exportFailed = mutableSetOf<Long>()
     private val failureShown = mutableSetOf<Long>()
+    private val completionShown = mutableSetOf<Long>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -90,7 +93,10 @@ class DownloadService : Service() {
         failureShown.retainAll(failedNow)
         for (item in listing.items) {
             when {
-                item.status == Status.COMPLETE && item.exported == null && item.path != null &&
+                item.status == Status.COMPLETE && item.inPlace && completionShown.add(item.id) ->
+                    Notifications.completed(this, item, null)
+
+                item.status == Status.COMPLETE && !item.inPlace && item.exported == null && item.path != null &&
                     item.id !in exporting && item.id !in exportFailed -> export(item)
 
                 item.status == Status.FAILED && failureShown.add(item.id) ->
@@ -132,11 +138,19 @@ class DownloadService : Service() {
             setReferenceCounted(false)
             acquire(WAKE_LOCK_LIMIT_MS)
         }
+        // Wi-Fi power saving throttles long transfers once the screen is off.
+        val wm = applicationContext.getSystemService(WifiManager::class.java)
+        wifiLock = wm?.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "mdm:downloads")?.apply {
+            setReferenceCounted(false)
+            acquire()
+        }
     }
 
     private fun releaseWakeLock() {
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
+        wifiLock?.takeIf { it.isHeld }?.release()
+        wifiLock = null
     }
 
     override fun onDestroy() {

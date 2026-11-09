@@ -1,6 +1,25 @@
 package io.github.lucasd1as.mdm.ui
 
 import android.content.Intent
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.provider.DocumentsContract
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import io.github.lucasd1as.mdm.StoragePaths
+import kotlinx.coroutines.flow.Flow
+import java.io.File
 import android.net.Uri
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -37,9 +57,17 @@ private val SPEED_STEPS = listOf(0L, 256_000L, 512_000L, 1_000_000L, 2_000_000L,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(settings: AppSettings, onChange: (AppSettings) -> Unit, onBack: () -> Unit) {
+fun SettingsScreen(
+    settings: AppSettings,
+    messages: Flow<String>,
+    onChange: (AppSettings) -> Unit,
+    onBack: () -> Unit,
+) {
     val ctx = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) { messages.collect { snackbar.showSnackbar(it) } }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.action_settings)) },
@@ -58,7 +86,7 @@ fun SettingsScreen(settings: AppSettings, onChange: (AppSettings) -> Unit, onBac
             IntSetting(
                 title = stringResource(R.string.setting_connections),
                 help = stringResource(R.string.setting_connections_help),
-                value = settings.maxConnections, range = 1..16,
+                value = settings.maxConnections, range = 1..32,
                 onCommit = { onChange(settings.copy(maxConnections = it)) },
             )
             IntSetting(
@@ -78,6 +106,7 @@ fun SettingsScreen(settings: AppSettings, onChange: (AppSettings) -> Unit, onBac
                 },
                 onCommit = { onChange(settings.copy(speedLimit = SPEED_STEPS[it])) },
             )
+            SaveFolderSetting(settings, onChange)
             HorizontalDivider()
             Text(stringResource(R.string.about_title), style = MaterialTheme.typography.titleMedium)
             val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() }
@@ -121,5 +150,83 @@ private fun IntSetting(
 private fun openLink(context: android.content.Context, url: String) {
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+/** Where finished files go: copied to Downloads, or written straight into a chosen folder. */
+@Composable
+private fun SaveFolderSetting(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    val ctx = LocalContext.current
+    val direct = settings.saveDir.isNotEmpty()
+    var allowed by remember { mutableStateOf(hasAllFilesAccess()) }
+    // Back from the system's permission screen.
+    LifecycleResumeEffect(Unit) {
+        allowed = hasAllFilesAccess()
+        onPauseOrDispose { }
+    }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        val path = uri?.let { StoragePaths.fromTreeDocumentId(DocumentsContract.getTreeDocumentId(it)) }
+        if (path != null) onChange(settings.copy(saveDir = path))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.setting_direct), style = MaterialTheme.typography.titleSmall)
+            }
+            Switch(
+                checked = direct,
+                onCheckedChange = { on ->
+                    if (!on) {
+                        onChange(settings.copy(saveDir = ""))
+                    } else {
+                        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                        onChange(settings.copy(saveDir = File(downloads, "ROMs").absolutePath))
+                    }
+                },
+            )
+        }
+        Text(
+            stringResource(R.string.setting_direct_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (direct) {
+            Text(
+                stringResource(R.string.setting_folder_saved, settings.saveDir),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { picker.launch(null) }) {
+                    Text(stringResource(R.string.setting_choose_folder))
+                }
+                if (!allowed) {
+                    Button(onClick = { requestAllFilesAccess(ctx) }) {
+                        Text(stringResource(R.string.setting_grant_access))
+                    }
+                }
+            }
+            Text(
+                stringResource(if (allowed) R.string.setting_access_ok else R.string.setting_access_needed),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (allowed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+private fun hasAllFilesAccess(): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()
+
+private fun requestAllFilesAccess(context: Context) {
+    runCatching {
+        context.startActivity(
+            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }.onFailure {
+        runCatching {
+            context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 }

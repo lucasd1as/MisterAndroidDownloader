@@ -83,7 +83,9 @@ object Notifications {
     }
 
     fun completed(context: Context, item: DownloadItem, uri: Uri?) {
-        val tap = if (uri != null) {
+        val tap = if (item.inPlace) {
+            openApp(context)
+        } else if (uri != null) {
             PendingIntent.getActivity(
                 context, item.id.toInt(), Exporter.viewIntent(uri, item.name),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -98,7 +100,11 @@ object Notifications {
                 .setContentTitle(item.name)
                 .setContentText(
                     context.getString(
-                        if (uri != null) R.string.notif_complete else R.string.notif_complete_in_app,
+                        when {
+                            item.inPlace -> R.string.notif_complete_in_folder
+                            uri != null -> R.string.notif_complete
+                            else -> R.string.notif_complete_in_app
+                        },
                         Formatter.formatShortFileSize(context, item.size ?: item.downloaded),
                     ),
                 )

@@ -36,7 +36,7 @@ fn dispatch(m: &Manager, method: &str, args: &str) -> Result<Value, String> {
 
     match method {
         "list" => to_value(&m.list()),
-        "add" => Ok(json!({ "id": m.add(&need("url")?, text("referer"))? })),
+        "add" => Ok(json!({ "id": m.add(&need("url")?, text("referer"), text("checksum"))? })),
         "probe" => to_value(&m.probe(&need("url")?, text("referer"))?),
         "pause" => {
             m.pause(id()?);
@@ -68,7 +68,7 @@ fn dispatch(m: &Manager, method: &str, args: &str) -> Result<Value, String> {
         "set_settings" => {
             let s: Settings =
                 serde_json::from_value(a.clone()).map_err(|e| format!("bad settings: {e}"))?;
-            m.set_settings(s);
+            m.set_settings(s)?;
             to_value(&m.settings())
         }
         _ => Err(format!("unknown method `{method}`")),

@@ -31,4 +31,13 @@ class UrlTextTest {
         assertNull(UrlText.first("magnet:?xt=urn:btih:abc"))
         assertNull(UrlText.first("http://"))
     }
+
+    @Test
+    fun foldersPickedInTheSystemChooserBecomePaths() {
+        assertEquals("/storage/emulated/0/Download/ROMs", StoragePaths.fromTreeDocumentId("primary:Download/ROMs"))
+        assertEquals("/storage/emulated/0", StoragePaths.fromTreeDocumentId("primary:"))
+        assertEquals("/storage/1A2B-3C4D/Switch", StoragePaths.fromTreeDocumentId("1A2B-3C4D:Switch"))
+        assertNull(StoragePaths.fromTreeDocumentId("raw"))
+        assertNull(StoragePaths.fromTreeDocumentId(":x"))
+    }
 }

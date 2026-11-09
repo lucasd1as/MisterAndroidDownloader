@@ -22,6 +22,23 @@ Around it sits a touch-first native Android app.
 - Survives the app being killed: the list is saved, and downloads that were running continue next time the app
   starts.
 
+### Tuned for big files such as ROMs
+
+- **Save straight to a folder** (Settings): the file is written where it belongs (e.g. an emulator's ROM folder
+  or an SD card) with no copy afterwards and no second copy taking up space. It needs Android's “All files
+  access”, which the settings screen asks for. Without it, files are copied to Downloads when finished, which
+  for a 4 GB file costs a noticeable extra step.
+- Up to **32 connections** per download (default 16). The engine learns how many connections each host tolerates
+  and backs off by itself; if a host allows only a few and a download will not start, lower the number.
+- A **Wi-Fi low-latency lock** and a CPU wake lock while downloading, so Android's power saving does not slow
+  long transfers once the screen is off.
+- An optional **checksum** (CRC32, MD5, SHA-1, SHA-256) in the add dialog; a mismatch fails the download.
+- Fully optimised native build (fat LTO, opt-level 3). On loopback the engine moves ~850 MB/s, so on a phone the
+  network, the server and the storage are the limits, not the app.
+
+Not supported, because the engine has no support for them: hosts that need a browser session or a captcha
+(Mega, MediaFire, 1fichier and similar). FAT32 SD cards cannot hold files over 4 GB whatever the app does.
+
 ### What the desktop app has that this one does not (yet)
 
 The engine supports more than the Android UI exposes. Not ported: torrents and magnet links, video pages

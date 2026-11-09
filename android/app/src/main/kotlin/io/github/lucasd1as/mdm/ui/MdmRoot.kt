@@ -56,6 +56,7 @@ fun MdmRoot(
         )
         Screen.Settings -> SettingsScreen(
             settings = listing.settings,
+            messages = viewModel.messages,
             onChange = viewModel::setSettings,
             onBack = { screen = Screen.Downloads },
         )

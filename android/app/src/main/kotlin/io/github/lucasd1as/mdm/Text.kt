@@ -40,3 +40,18 @@ object Eta {
         else -> "${seconds / 86_400}d ${((seconds % 86_400) / 3600)}h"
     }
 }
+
+object StoragePaths {
+    /**
+     * The path a folder picked with the system's folder chooser has on disk, from the tree's
+     * document id: `primary:Download/ROMs` is `/storage/emulated/0/Download/ROMs`, and
+     * `1A2B-3C4D:ROMs` on an SD card is `/storage/1A2B-3C4D/ROMs`. Null for other providers.
+     */
+    fun fromTreeDocumentId(id: String): String? {
+        val volume = id.substringBefore(':', "")
+        val rest = id.substringAfter(':', "")
+        if (volume.isBlank() || ' ' in volume || '/' in volume) return null
+        val root = if (volume == "primary") "/storage/emulated/0" else "/storage/$volume"
+        return if (rest.isEmpty()) root else "$root/$rest"
+    }
+}

@@ -100,6 +100,7 @@ struct Launch {
     start_bytes: u64,
     /// Where a download without a file name yet goes.
     dir: PathBuf,
+    checksum: Option<String>,
 }
 
 fn lock(m: &Mutex<State>) -> MutexGuard<'_, State> {
@@ -157,8 +158,19 @@ impl Manager {
 
     /// Add a download and queue it. An address already in the list and not finished is not added
     /// twice: its id comes back (a link shared twice).
-    pub fn add(&self, url: &str, referer: Option<String>) -> Result<u64, String> {
+    pub fn add(
+        &self,
+        url: &str,
+        referer: Option<String>,
+        checksum: Option<String>,
+    ) -> Result<u64, String> {
         let url = url.trim();
+        let checksum = checksum.map(|c| c.trim().to_owned()).filter(|c| !c.is_empty());
+        if let Some(c) = &checksum
+            && mdm_engine::verify::Hash::parse(c).is_none()
+        {
+            return Err("not a checksum (hex MD5, SHA-1, SHA-256, SHA-512 or CRC32)".into());
+        }
         let parsed = Url::parse(url).map_err(|e| format!("not a valid address: {e}"))?;
         if !mdm_engine::supported(&parsed) {
             return Err("only http, https, ftp and ftps addresses can be downloaded".into());
@@ -195,6 +207,8 @@ impl Manager {
                     added_at: now_ms(),
                     finished_at: None,
                     exported: None,
+                    checksum,
+                    in_place: false,
                 },
                 run: None,
             });
@@ -354,8 +368,14 @@ impl Manager {
         lock(&self.inner.state).settings.clone()
     }
 
-    pub fn set_settings(&self, settings: Settings) {
+    pub fn set_settings(&self, settings: Settings) -> Result<(), String> {
         let settings = settings.clamped();
+        if !settings.save_dir.is_empty() {
+            let dir = Path::new(&settings.save_dir);
+            std::fs::create_dir_all(dir)
+                .and_then(|_| tempfile_probe(dir))
+                .map_err(|e| format!("cannot write to {}: {e}", dir.display()))?;
+        }
         {
             let mut st = lock(&self.inner.state);
             self.inner.global.set(limit(&settings));
@@ -364,6 +384,7 @@ impl Manager {
         }
         // More slots may be free now.
         self.inner.pump();
+        Ok(())
     }
 
     /// What the server says about an address (name and size), for the add dialog. Blocks: call
@@ -393,6 +414,13 @@ impl Manager {
             Err(_) => Err("the server did not answer in time".into()),
         }
     }
+}
+
+/// Whether a file can be created in `dir`.
+fn tempfile_probe(dir: &Path) -> std::io::Result<()> {
+    let probe = dir.join(".mdm-write-test");
+    std::fs::write(&probe, b"")?;
+    std::fs::remove_file(probe)
 }
 
 fn limit(s: &Settings) -> Option<u64> {
@@ -461,7 +489,12 @@ impl Inner {
 
     fn start(self: &Arc<Self>, st: &mut State, idx: usize) {
         let opts = self.options(&st.settings);
+        let custom = (!st.settings.save_dir.is_empty()).then(|| PathBuf::from(&st.settings.save_dir));
         let e = &mut st.items[idx];
+        // The folder is chosen when a download first starts; a resume goes on in its own.
+        if e.item.path.is_none() {
+            e.item.in_place = custom.is_some();
+        }
         e.item.status = Status::Downloading;
         e.item.error = None;
         e.item.speed = 0;
@@ -471,7 +504,8 @@ impl Inner {
             path: e.item.path.clone(),
             referer: e.item.referer.clone(),
             start_bytes: e.item.downloaded,
-            dir: self.cfg.download_dir.clone(),
+            dir: custom.unwrap_or_else(|| self.cfg.download_dir.clone()),
+            checksum: e.item.checksum.clone(),
         };
         let id = launch.id;
         let stop = CancellationToken::new();
@@ -599,7 +633,8 @@ async fn supervise(inner: Arc<Inner>, l: Launch, opts: Options, stop: Cancellati
 
 /// Resume from the saved state when there is one, else start over (into the same file name when
 /// it was already chosen).
-fn launch(l: &Launch, opts: Options) -> Result<Download, String> {
+fn launch(l: &Launch, mut opts: Options) -> Result<Download, String> {
+    opts.checksum = l.checksum.as_deref().and_then(mdm_engine::verify::Hash::parse);
     let url: Url = l.url.parse().map_err(|e| format!("not a valid address: {e}"))?;
     let headers = headers(l.referer.as_deref());
     let dest = match &l.path {

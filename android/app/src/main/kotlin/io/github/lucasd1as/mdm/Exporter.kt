@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.IOException
 
@@ -68,12 +69,27 @@ object Exporter {
 
     /** Opens [item]'s file; false when it isn't there or nothing opens it. */
     fun open(context: Context, item: DownloadItem): Boolean {
+        if (item.inPlace) return openFile(context, item)
         val uri = item.exported?.let(Uri::parse) ?: return false
         if (!exists(context, uri)) return false
         return try {
             context.startActivity(viewIntent(uri, item.name))
             true
         } catch (e: ActivityNotFoundException) {
+            false
+        }
+    }
+
+    /** A file downloaded straight into a folder, shared with the viewer through a FileProvider. */
+    private fun openFile(context: Context, item: DownloadItem): Boolean {
+        val file = File(item.path ?: return false)
+        if (!file.isFile) return false
+        return try {
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+            context.startActivity(viewIntent(uri, item.name))
+            true
+        } catch (e: Exception) {
+            // Outside the primary storage the provider has no root for it, or nothing opens it.
             false
         }
     }

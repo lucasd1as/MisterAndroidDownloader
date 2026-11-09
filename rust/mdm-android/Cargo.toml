@@ -28,3 +28,4 @@ rustls-platform-verifier = "0.7.1"
 [dev-dependencies]
 mdm-labserver = { git = "https://github.com/anefzaoui/misterdownloadmanager", rev = "1e4ae5881bddd1c96e39e14b8f4eb28703fcd732" }
 tempfile = "3"
+sha2 = "0.11"

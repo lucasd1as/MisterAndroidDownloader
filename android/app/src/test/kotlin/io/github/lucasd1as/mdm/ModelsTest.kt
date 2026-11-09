@@ -26,6 +26,8 @@ class ModelsTest {
         assertEquals(1, l.active)
         assertEquals(2048L, l.speed)
         assertEquals(8, l.settings.maxConnections)
+        assertEquals("", l.settings.saveDir)
+        assertEquals(false, l.items[0].inPlace)
         val a = l.items[0]
         assertEquals(Status.DOWNLOADING, a.status)
         assertEquals(0.5f, a.fraction!!, 0.0001f)
@@ -46,7 +48,7 @@ class ModelsTest {
 
     @Test
     fun settingsRoundTrip() {
-        val s = AppSettings(maxConnections = 4, maxActive = 2, speedLimit = 1_000_000)
+        val s = AppSettings(maxConnections = 4, maxActive = 2, speedLimit = 1_000_000, saveDir = "/storage/emulated/0/ROMs")
         assertEquals(s, AppSettings.parse(s.toJson()))
     }
 

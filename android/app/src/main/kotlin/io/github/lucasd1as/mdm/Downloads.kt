@@ -57,9 +57,10 @@ object Downloads {
     fun list(): Listing = Listing.parse(call("list").getJSONObject("result"))
 
     /** Queues a download; returns its id. */
-    fun add(url: String, referer: String? = null): Long {
+    fun add(url: String, referer: String? = null, checksum: String? = null): Long {
         val args = JSONObject().put("url", url)
         if (referer != null) args.put("referer", referer)
+        if (!checksum.isNullOrBlank()) args.put("checksum", checksum)
         return call("add", args).getJSONObject("result").getLong("id")
     }
 

@@ -55,12 +55,12 @@ class DownloadsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun add(urls: List<String>) = background {
+    fun add(urls: List<String>, checksum: String? = null) = background {
         var added = 0
         var firstError: String? = null
         for (url in urls) {
             try {
-                Downloads.add(url)
+                Downloads.add(url, checksum = checksum.takeIf { urls.size == 1 })
                 added++
             } catch (e: NativeException) {
                 if (firstError == null) firstError = e.message
@@ -104,7 +104,8 @@ class DownloadsViewModel(app: Application) : AndroidViewModel(app) {
             if (!opened) {
                 message(
                     ctx.getString(
-                        if (item.exported == null) R.string.msg_in_app_folder else R.string.msg_cannot_open,
+                        if (item.inPlace) R.string.msg_cannot_open_in_place
+                        else if (item.exported == null) R.string.msg_in_app_folder else R.string.msg_cannot_open,
                     ),
                 )
             }

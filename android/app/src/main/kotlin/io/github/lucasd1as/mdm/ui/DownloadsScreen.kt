@@ -204,7 +204,7 @@ fun DownloadsScreen(
             initial = prefill,
             viewModel = viewModel,
             onDismiss = { showAdd = false },
-            onAdd = { urls -> showAdd = false; viewModel.add(urls) },
+            onAdd = { urls, checksum -> showAdd = false; viewModel.add(urls, checksum) },
         )
     }
     confirmDelete?.let { item ->
@@ -264,7 +264,11 @@ private fun statusLine(item: DownloadItem): String {
         Status.COMPLETE -> stringResource(
             R.string.status_complete_fmt,
             size(item.size ?: item.downloaded),
-            stringResource(if (item.exported != null) R.string.saved_downloads else R.string.saved_app),
+            when {
+                item.inPlace -> item.path?.substringBeforeLast('/') ?: stringResource(R.string.saved_app)
+                item.exported != null -> stringResource(R.string.saved_downloads)
+                else -> stringResource(R.string.saved_app)
+            },
         )
     }
 }
@@ -366,9 +370,10 @@ private fun AddDownloadDialog(
     initial: String,
     viewModel: DownloadsViewModel,
     onDismiss: () -> Unit,
-    onAdd: (List<String>) -> Unit,
+    onAdd: (List<String>, String?) -> Unit,
 ) {
     var text by rememberSaveable { mutableStateOf(initial) }
+    var checksum by rememberSaveable { mutableStateOf("") }
     val urls = remember(text) { UrlText.all(text) }
     var info by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
@@ -408,6 +413,15 @@ private fun AddDownloadDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (urls.size == 1) {
+                    OutlinedTextField(
+                        value = checksum,
+                        onValueChange = { checksum = it },
+                        label = { Text(stringResource(R.string.add_checksum_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 val line = when {
                     text.isBlank() -> null
                     urls.isEmpty() -> stringResource(R.string.add_not_a_link)
@@ -426,7 +440,7 @@ private fun AddDownloadDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(urls) }, enabled = urls.isNotEmpty()) {
+            TextButton(onClick = { onAdd(urls, checksum.trim().ifEmpty { null }) }, enabled = urls.isNotEmpty()) {
                 Text(stringResource(R.string.action_download))
             }
         },

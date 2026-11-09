@@ -30,6 +30,9 @@ data class DownloadItem(
     val finishedAt: Long?,
     /** content:// URI of the finished file in the public Downloads folder. */
     val exported: String?,
+    val checksum: String?,
+    /** Downloaded straight into the user's chosen folder: [path] is the final file. */
+    val inPlace: Boolean,
 ) {
     val isActive: Boolean get() = status == Status.QUEUED || status == Status.DOWNLOADING
 
@@ -52,26 +55,32 @@ data class DownloadItem(
             addedAt = o.optLong("added_at"),
             finishedAt = o.optLongOrNull("finished_at"),
             exported = o.optStringOrNull("exported"),
+            checksum = o.optStringOrNull("checksum"),
+            inPlace = o.optBoolean("in_place", false),
         )
     }
 }
 
 data class AppSettings(
-    val maxConnections: Int = 8,
+    val maxConnections: Int = 16,
     val maxActive: Int = 3,
     /** Bytes per second for everything together; 0 is unlimited. */
     val speedLimit: Long = 0,
+    /** A folder to download straight into (empty: the app's folder, copied to Downloads). */
+    val saveDir: String = "",
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("max_connections", maxConnections)
         .put("max_active", maxActive)
         .put("speed_limit", speedLimit)
+        .put("save_dir", saveDir)
 
     companion object {
         fun parse(o: JSONObject) = AppSettings(
-            maxConnections = o.optInt("max_connections", 8),
+            maxConnections = o.optInt("max_connections", 16),
             maxActive = o.optInt("max_active", 3),
             speedLimit = o.optLong("speed_limit", 0),
+            saveDir = o.optString("save_dir", ""),
         )
     }
 }
